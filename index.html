@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LP Delivery Coach</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --surface: #1a2332;
+      --surface2: #243044;
+      --border: #2d3a4f;
+      --text: #e8edf4;
+      --muted: #8b9cb3;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --success: #22c55e;
+      --danger: #ef4444;
+      --warn: #f59e0b;
+      --radius: 10px;
+      --font: "Segoe UI", system-ui, -apple-system, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    .wrap {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 2rem 1.25rem 4rem;
+    }
+
+    header {
+      margin-bottom: 2rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1.25rem;
+    }
+
+    header h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    header p {
+      color: var(--muted);
+      margin-top: 0.35rem;
+      font-size: 0.95rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      margin-bottom: 0.4rem;
+    }
+
+    input[type="text"],
+    input[type="password"],
+    textarea {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      padding: 0.75rem 0.9rem;
+      font-size: 1rem;
+      font-family: inherit;
+      resize: vertical;
+    }
+
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+
+    textarea { min-height: 140px; }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .card h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--text);
+    }
+
+    .field { margin-bottom: 1rem; }
+    .field:last-child { margin-bottom: 0; }
+
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    button {
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 600;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      padding: 0.65rem 1.25rem;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    button:active:not(:disabled) { transform: scale(0.98); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+
+    .btn-record {
+      background: var(--danger);
+      color: #fff;
+    }
+
+    .btn-record.recording {
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); }
+      50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+    }
+
+    .btn-secondary {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover:not(:disabled) { background: var(--border); }
+
+    .metrics {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+
+    .metrics span strong {
+      color: var(--text);
+      font-size: 1.1rem;
+    }
+
+    .metrics span { color: var(--muted); }
+
+    .hint {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-top: 0.5rem;
+    }
+
+    .status {
+      font-size: 0.9rem;
+      color: var(--warn);
+      margin-top: 0.5rem;
+    }
+
+    .status.ok { color: var(--success); }
+    .status.err { color: var(--danger); }
+
+    #results { display: none; }
+    #results.visible { display: block; }
+
+    .scorecard {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 1.25rem;
+      align-items: start;
+      margin-bottom: 1.25rem;
+    }
+
+    .score-big {
+      font-size: 3.5rem;
+      font-weight: 800;
+      line-height: 1;
+      color: var(--accent);
+    }
+
+    .score-big small {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    .verdict {
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+    }
+
+    .confidence {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .section-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      margin: 1.25rem 0 0.6rem;
+    }
+
+    ul.plain {
+      list-style: disc;
+      padding-left: 1.25rem;
+    }
+
+    ul.plain li { margin-bottom: 0.35rem; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 0.6rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+    }
+
+    .star-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem 1.25rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .star-item {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .star-item.pass { color: var(--success); }
+    .star-item.fail { color: var(--danger); }
+
+    .landing-badge {
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-right: 0.5rem;
+    }
+
+    .landing-badge.pass { background: rgba(34, 197, 94, 0.2); color: var(--success); }
+    .landing-badge.fail { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
+
+    .compare {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    @media (max-width: 600px) {
+      .compare { grid-template-columns: 1fr; }
+      .scorecard { grid-template-columns: 1fr; }
+    }
+
+    .compare blockquote {
+      background: var(--surface2);
+      border-left: 3px solid var(--border);
+      padding: 0.75rem 1rem;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      font-size: 0.9rem;
+    }
+
+    .compare blockquote.stronger {
+      border-left-color: var(--accent);
+    }
+
+    .compare .lbl {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.35rem;
+      font-weight: 600;
+    }
+
+    .filler-note {
+      font-size: 0.85rem;
+      color: var(--muted);
+      font-style: italic;
+      margin-top: 1.25rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .history-list {
+      list-style: none;
+    }
+
+    .history-list li {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+      gap: 1rem;
+    }
+
+    .history-list .hist-score {
+      font-weight: 700;
+      color: var(--accent);
+      white-space: nowrap;
+    }
+
+    .history-empty { color: var(--muted); font-size: 0.9rem; }
+
+    .error-box {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid var(--danger);
+      color: #fecaca;
+      padding: 0.75rem 1rem;
+      border-radius: var(--radius);
+      margin-top: 1rem;
+      font-size: 0.9rem;
+      white-space: pre-wrap;
+    }
+
+    .loading {
+      display: inline-block;
+      margin-left: 0.5rem;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>LP Delivery Coach</h1>
+      <p>Amazon SDE 2 Leadership Principles — delivery feedback from an LLM, not rules.</p>
+    </header>
+
+    <section class="card">
+      <h2>Setup</h2>
+      <div class="field">
+        <label for="apiKey">Gemini API key (optional if set in code)</label>
+        <input type="password" id="apiKey" placeholder="AIza…" autocomplete="off" />
+      </div>
+      <p class="hint">Uses Google Gemini (<code>generateContent</code>). Get a key at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style="color: var(--accent);">Google AI Studio</a>. See script comments to swap OpenAI or Anthropic.</p>
+    </section>
+
+    <section class="card">
+      <h2>Your answer</h2>
+      <div class="field">
+        <label for="question">Question I'm answering</label>
+        <input type="text" id="question" placeholder="e.g. Tell me about a time you disagreed with your manager." />
+      </div>
+
+      <div class="row" style="margin-bottom: 1rem;">
+        <button type="button" class="btn-record" id="recordBtn">● Record</button>
+        <button type="button" class="btn-secondary" id="clearBtn">Clear transcript</button>
+        <span class="status" id="speechStatus"></span>
+      </div>
+
+      <div class="field">
+        <label for="transcript">Transcript (live while recording, or paste/type)</label>
+        <textarea id="transcript" placeholder="Speak with Record, or paste your answer here…"></textarea>
+      </div>
+
+      <div class="metrics" id="metrics" hidden>
+        <span>Duration: <strong id="metricDuration">—</strong> sec</span>
+        <span>Words: <strong id="metricWords">—</strong></span>
+        <span>WPM: <strong id="metricWpm">—</strong></span>
+      </div>
+
+      <div class="row" style="margin-top: 1.25rem;">
+        <button type="button" class="btn-primary" id="analyzeBtn">Analyze delivery</button>
+        <span class="loading" id="analyzeLoading" hidden>Analyzing…</span>
+      </div>
+      <div id="analyzeError" class="error-box" hidden></div>
+    </section>
+
+    <section id="results" class="card">
+      <h2>Scorecard</h2>
+      <div class="scorecard">
+        <div>
+          <div class="score-big"><span id="outScore">—</span><small>/10</small></div>
+        </div>
+        <div>
+          <p class="verdict" id="outVerdict"></p>
+          <p class="confidence" id="outConfidence"></p>
+        </div>
+      </div>
+
+      <p class="section-title">Strengths</p>
+      <ul class="plain" id="outStrengths"></ul>
+
+      <p class="section-title">Hedges — what I said → say this instead</p>
+      <div id="hedgesWrap">
+        <table id="hedgesTable">
+          <thead>
+            <tr><th>What I said</th><th>Say this instead</th></tr>
+          </thead>
+          <tbody id="outHedges"></tbody>
+        </table>
+        <p class="hint" id="hedgesEmpty" hidden>No hedges flagged.</p>
+      </div>
+
+      <p class="section-title">Landing</p>
+      <p><span class="landing-badge" id="outLandingBadge">—</span><span id="outLandingComment"></span></p>
+
+      <p class="section-title">STAR</p>
+      <div class="star-row" id="outStarRow"></div>
+      <p class="hint" id="outStarComment"></p>
+
+      <p class="section-title">Pace</p>
+      <p id="outPace"></p>
+
+      <p class="section-title">Weakest sentence</p>
+      <div class="compare">
+        <div>
+          <div class="lbl">Original</div>
+          <blockquote id="outWeakestOrig"></blockquote>
+        </div>
+        <div>
+          <div class="lbl">Stronger</div>
+          <blockquote class="stronger" id="outWeakestStrong"></blockquote>
+        </div>
+      </div>
+
+      <p class="section-title">Be ready for these follow-ups</p>
+      <ul class="plain" id="outFollowUps"></ul>
+
+      <p class="filler-note">Browser speech-to-text under-detects “um” and “uh,” so filler counts from the transcript are unreliable. Hedging words, landing, STAR, and pace are the signals to trust.</p>
+    </section>
+
+    <section class="card">
+      <h2>Rep history</h2>
+      <p class="hint" style="margin-bottom: 0.75rem;">In-memory only (resets on refresh). Track your trend across practice reps.</p>
+      <ul class="history-list" id="historyList"></ul>
+      <p class="history-empty" id="historyEmpty">No reps yet. Run Analyze to add one.</p>
+    </section>
+  </div>
+
+  <script>
+    // ─── Config (Google Gemini) ───────────────────────────────────────────────
+    const PROVIDER = "gemini"; // "gemini" | "openai" | "anthropic"
+    const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
+    const MODEL = "gemini-2.0-flash"; // e.g. gemini-2.0-flash, gemini-1.5-pro, gemini-2.5-flash-preview
+    const API_KEY = ""; // paste Gemini key here, or use the API key field below
+
+    // OpenAI swap: set PROVIDER = "openai", MODEL = "gpt-4o",
+    //   LLM_ENDPOINT = "https://api.openai.com/v1/chat/completions"
+    // Anthropic swap: set PROVIDER = "anthropic",
+    //   LLM_ENDPOINT = "https://api.anthropic.com/v1/messages", MODEL = "claude-sonnet-4-20250514"
+    const LLM_ENDPOINT = "https://api.openai.com/v1/chat/completions"; // only when PROVIDER === "openai"
+
+    const RUBRIC = `You are an Amazon SDE 2 Leadership Principles interview coach scoring DELIVERY, not just content. Bar = SDE 2: ownership of ambiguity, tradeoff reasoning, depth on follow-ups, quantified results. Judge the answer on:
+1. Hedging language — flag every instance of: just, kind of, sort of, I guess, maybe, a little, honestly, basically, probably, I think, and any 'we' used for the speaker's own work. For each, give the confident rewrite. Zero hedges is the target.
+2. Landing — did the answer END on a quantified result and then stop, or did it trail off? Trailing off past the result reads as underconfident.
+3. STAR completeness — is Situation, Task, Action, Result each present? Action should carry the decisions/tradeoffs.
+4. Pace — given the provided WPM, comment vs the 130-150 target (170+ reads as panic).
+5. Confidence read — state plainly whether it sounds underconfident and exactly why.
+6. Rewrite the single weakest sentence into a stronger, more confident version.
+7. Give the 2 most likely follow-up questions an SDE 2 interviewer would ask, since follow-ups are where the level is decided.
+Be specific and direct. No pep talk. Quote the candidate's actual words when flagging.`;
+
+    const JSON_SCHEMA_INSTRUCTION = `Return ONLY valid JSON (no markdown, no code fences) matching this exact schema:
+{
+  "score": <number 0-10>,
+  "verdict": "<one-line summary>",
+  "confidenceRead": "<does this sound confident or underconfident, and the specific reason>",
+  "strengths": ["<string>", ...],
+  "hedges": [{"phrase":"<exact words candidate said>","rewrite":"<confident version>"}],
+  "landedResult": {"passed": <true|false>, "comment": "<did they end on a quantified result and stop?>"},
+  "star": {"situation": <true|false>, "task": <true|false>, "action": <true|false>, "result": <true|false>, "comment": "<string>"},
+  "pace": "<comment on WPM vs 130-150 target>",
+  "weakestSentence": {"original": "<string>", "stronger": "<string>"},
+  "followUps": ["<likely follow-up 1>", "<likely follow-up 2>"]
+}`;
+
+    // ─── State ────────────────────────────────────────────────────────────────
+    const repHistory = [];
+    let recognition = null;
+    let isRecording = false;
+    let recordStartMs = null;
+    let recordEndMs = null;
+    let finalTranscriptPrefix = "";
+
+    // ─── DOM ──────────────────────────────────────────────────────────────────
+    const $ = (id) => document.getElementById(id);
+    const apiKeyEl = $("apiKey");
+    const questionEl = $("question");
+    const transcriptEl = $("transcript");
+    const recordBtn = $("recordBtn");
+    const clearBtn = $("clearBtn");
+    const speechStatusEl = $("speechStatus");
+    const metricsEl = $("metrics");
+    const metricDurationEl = $("metricDuration");
+    const metricWordsEl = $("metricWords");
+    const metricWpmEl = $("metricWpm");
+    const analyzeBtn = $("analyzeBtn");
+    const analyzeLoadingEl = $("analyzeLoading");
+    const analyzeErrorEl = $("analyzeError");
+    const resultsEl = $("results");
+    const historyListEl = $("historyList");
+    const historyEmptyEl = $("historyEmpty");
+
+    // ─── Speech ───────────────────────────────────────────────────────────────
+    function initSpeech() {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) {
+        speechStatusEl.textContent = "Web Speech API not available — use Chrome and paste/type your answer.";
+        speechStatusEl.classList.add("err");
+        recordBtn.disabled = true;
+        return;
+      }
+      recognition = new SR();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = "en-US";
+
+      recognition.onresult = (event) => {
+        let interim = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const t = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalTranscriptPrefix += t;
+          } else {
+            interim += t;
+          }
+        }
+        transcriptEl.value = finalTranscriptPrefix + interim;
+      };
+
+      recognition.onerror = (e) => {
+        speechStatusEl.textContent = "Speech error: " + (e.error || "unknown");
+        speechStatusEl.classList.add("err");
+        stopRecording();
+      };
+
+      recognition.onend = () => {
+        if (isRecording) {
+          try { recognition.start(); } catch (_) { /* restart after auto-end */ }
+        }
+      };
+
+      speechStatusEl.textContent = "Chrome speech ready.";
+      speechStatusEl.classList.add("ok");
+    }
+
+    function startRecording() {
+      if (!recognition) return;
+      finalTranscriptPrefix = transcriptEl.value.trim() ? transcriptEl.value.trim() + " " : "";
+      recordStartMs = Date.now();
+      recordEndMs = null;
+      isRecording = true;
+      recordBtn.textContent = "■ Stop";
+      recordBtn.classList.add("recording");
+      speechStatusEl.textContent = "Recording…";
+      speechStatusEl.classList.remove("err");
+      try {
+        recognition.start();
+      } catch (e) {
+        speechStatusEl.textContent = "Could not start: " + e.message;
+        speechStatusEl.classList.add("err");
+        isRecording = false;
+        recordBtn.textContent = "● Record";
+        recordBtn.classList.remove("recording");
+      }
+    }
+
+    function stopRecording() {
+      if (!isRecording) return;
+      isRecording = false;
+      recordEndMs = Date.now();
+      recordBtn.textContent = "● Record";
+      recordBtn.classList.remove("recording");
+      speechStatusEl.textContent = "Stopped.";
+      if (recognition) {
+        try { recognition.stop(); } catch (_) {}
+      }
+      updateMetrics();
+    }
+
+    recordBtn.addEventListener("click", () => {
+      if (isRecording) stopRecording();
+      else startRecording();
+    });
+
+    clearBtn.addEventListener("click", () => {
+      if (isRecording) stopRecording();
+      transcriptEl.value = "";
+      finalTranscriptPrefix = "";
+      recordStartMs = null;
+      recordEndMs = null;
+      metricsEl.hidden = true;
+      hideError();
+    });
+
+    // ─── Metrics (context for LLM only) ───────────────────────────────────────
+    function countWords(text) {
+      const t = text.trim();
+      if (!t) return 0;
+      return t.split(/\s+/).filter(Boolean).length;
+    }
+
+    function getDurationSec() {
+      if (recordStartMs == null) return null;
+      const end = recordEndMs != null ? recordEndMs : Date.now();
+      return Math.max(0, (end - recordStartMs) / 1000);
+    }
+
+    function updateMetrics() {
+      const text = transcriptEl.value.trim();
+      const words = countWords(text);
+      const durationSec = getDurationSec();
+      if (durationSec == null && words === 0) {
+        metricsEl.hidden = true;
+        return;
+      }
+      metricsEl.hidden = false;
+      const dur = durationSec != null ? durationSec.toFixed(1) : "—";
+      metricDurationEl.textContent = dur;
+      metricWordsEl.textContent = String(words);
+      if (durationSec != null && durationSec > 0) {
+        metricWpmEl.textContent = String(Math.round(words / (durationSec / 60)));
+      } else {
+        metricWpmEl.textContent = "—";
+      }
+    }
+
+    transcriptEl.addEventListener("input", () => {
+      if (!isRecording) updateMetrics();
+    });
+
+    // ─── LLM ──────────────────────────────────────────────────────────────────
+    function getApiKey() {
+      const fromField = apiKeyEl.value.trim();
+      if (fromField) return fromField;
+      return API_KEY.trim();
+    }
+
+    function buildUserMessage(question, transcript, durationSec, wpm) {
+      const lines = [
+        "Question I'm answering:",
+        question || "(not provided)",
+        "",
+        "Transcript:",
+        transcript,
+        "",
+        "Delivery context (computed client-side, for your reference only — do not score with rules; use your judgment):",
+        "- Duration (seconds): " + (durationSec != null ? durationSec.toFixed(1) : "unknown"),
+        "- Word count: " + countWords(transcript),
+        "- WPM: " + (wpm != null ? wpm : "unknown"),
+      ];
+      return lines.join("\n");
+    }
+
+    function extractGeminiError(data, res) {
+      return (
+        data.error?.message ||
+        data[0]?.error?.message ||
+        res.statusText ||
+        "Request failed"
+      );
+    }
+
+    async function callGemini(userMessage, key) {
+      const systemText = RUBRIC + "\n\n" + JSON_SCHEMA_INSTRUCTION;
+      const url =
+        GEMINI_API_BASE +
+        "/models/" +
+        encodeURIComponent(MODEL) +
+        ":generateContent";
+
+      const body = {
+        systemInstruction: { parts: [{ text: systemText }] },
+        contents: [{ role: "user", parts: [{ text: userMessage }] }],
+        generationConfig: {
+          temperature: 0.3,
+          responseMimeType: "application/json",
+        },
+      };
+
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": key,
+        },
+        body: JSON.stringify(body),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(extractGeminiError(data, res));
+
+      const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!content) {
+        const block = data.candidates?.[0]?.finishReason;
+        throw new Error(
+          "No text in Gemini response." + (block ? " Finish reason: " + block : "")
+        );
+      }
+      return content;
+    }
+
+    async function callOpenAI(userMessage, key) {
+      const body = {
+        model: MODEL,
+        temperature: 0.3,
+        messages: [
+          { role: "system", content: RUBRIC + "\n\n" + JSON_SCHEMA_INSTRUCTION },
+          { role: "user", content: userMessage },
+        ],
+      };
+
+      const res = await fetch(LLM_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + key,
+        },
+        body: JSON.stringify(body),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error?.message || res.statusText || "Request failed");
+      }
+
+      const content = data.choices?.[0]?.message?.content;
+      if (!content) throw new Error("No content in OpenAI response.");
+      return content;
+    }
+
+    async function callAnthropic(userMessage, key) {
+      const res = await fetch(LLM_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": key,
+          "anthropic-version": "2023-06-01",
+          "anthropic-dangerous-direct-browser-access": "true",
+        },
+        body: JSON.stringify({
+          model: MODEL,
+          max_tokens: 2048,
+          temperature: 0.3,
+          system: RUBRIC + "\n\n" + JSON_SCHEMA_INSTRUCTION,
+          messages: [{ role: "user", content: userMessage }],
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error?.message || res.statusText || "Request failed");
+      }
+
+      const content = data.content?.[0]?.text;
+      if (!content) throw new Error("No content in Anthropic response.");
+      return content;
+    }
+
+    async function callLLM(userMessage) {
+      const key = getApiKey();
+      if (!key) {
+        throw new Error("Add your Gemini API key in the field above or in API_KEY in the script.");
+      }
+
+      if (PROVIDER === "gemini") return callGemini(userMessage, key);
+      if (PROVIDER === "openai") return callOpenAI(userMessage, key);
+      if (PROVIDER === "anthropic") return callAnthropic(userMessage, key);
+      throw new Error('Unknown PROVIDER "' + PROVIDER + '". Use "gemini", "openai", or "anthropic".');
+    }
+
+    function parseModelJson(raw) {
+      let s = raw.trim();
+      s = s.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+      const start = s.indexOf("{");
+      const end = s.lastIndexOf("}");
+      if (start === -1 || end === -1 || end <= start) {
+        throw new Error("No JSON object found in model output.\n\nRaw output:\n" + raw.slice(0, 500));
+      }
+      s = s.slice(start, end + 1);
+      try {
+        return JSON.parse(s);
+      } catch (e) {
+        throw new Error("JSON.parse failed: " + e.message + "\n\nExtracted:\n" + s.slice(0, 800));
+      }
+    }
+
+    function validateResult(obj) {
+      if (typeof obj.score !== "number") throw new Error("Missing or invalid score.");
+      if (typeof obj.verdict !== "string") throw new Error("Missing verdict.");
+      if (!Array.isArray(obj.strengths)) obj.strengths = [];
+      if (!Array.isArray(obj.hedges)) obj.hedges = [];
+      if (!Array.isArray(obj.followUps)) obj.followUps = [];
+      return obj;
+    }
+
+    // ─── Render ───────────────────────────────────────────────────────────────
+    function renderResults(data, wpmDisplay) {
+      $("outScore").textContent = data.score;
+      $("outVerdict").textContent = data.verdict;
+      $("outConfidence").textContent = data.confidenceRead || "";
+
+      const strengthsUl = $("outStrengths");
+      strengthsUl.innerHTML = "";
+      (data.strengths || []).forEach((s) => {
+        const li = document.createElement("li");
+        li.textContent = s;
+        strengthsUl.appendChild(li);
+      });
+      if (!data.strengths?.length) {
+        const li = document.createElement("li");
+        li.textContent = "—";
+        strengthsUl.appendChild(li);
+      }
+
+      const hedgesBody = $("outHedges");
+      const hedgesTable = $("hedgesTable");
+      const hedgesEmpty = $("hedgesEmpty");
+      hedgesBody.innerHTML = "";
+      const hedges = data.hedges || [];
+      if (hedges.length) {
+        hedgesTable.hidden = false;
+        hedgesEmpty.hidden = true;
+        hedges.forEach((h) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML =
+            "<td>" + escapeHtml(h.phrase || "") + "</td>" +
+            "<td>" + escapeHtml(h.rewrite || "") + "</td>";
+          hedgesBody.appendChild(tr);
+        });
+      } else {
+        hedgesTable.hidden = true;
+        hedgesEmpty.hidden = false;
+      }
+
+      const landed = data.landedResult || {};
+      const badge = $("outLandingBadge");
+      badge.textContent = landed.passed ? "Pass" : "Fail";
+      badge.className = "landing-badge " + (landed.passed ? "pass" : "fail");
+      $("outLandingComment").textContent = landed.comment || "";
+
+      const star = data.star || {};
+      const starLabels = [
+        ["situation", "Situation"],
+        ["task", "Task"],
+        ["action", "Action"],
+        ["result", "Result"],
+      ];
+      const starRow = $("outStarRow");
+      starRow.innerHTML = "";
+      starLabels.forEach(([key, label]) => {
+        const ok = !!star[key];
+        const div = document.createElement("div");
+        div.className = "star-item " + (ok ? "pass" : "fail");
+        div.textContent = (ok ? "✓" : "✗") + " " + label;
+        starRow.appendChild(div);
+      });
+      $("outStarComment").textContent = star.comment || "";
+
+      const paceText = data.pace || "";
+      $("outPace").textContent =
+        (wpmDisplay != null ? "Your WPM: " + wpmDisplay + ". " : "") + paceText;
+
+      const weak = data.weakestSentence || {};
+      $("outWeakestOrig").textContent = weak.original || "—";
+      $("outWeakestStrong").textContent = weak.stronger || "—";
+
+      const followUl = $("outFollowUps");
+      followUl.innerHTML = "";
+      (data.followUps || []).slice(0, 2).forEach((q) => {
+        const li = document.createElement("li");
+        li.textContent = q;
+        followUl.appendChild(li);
+      });
+
+      resultsEl.classList.add("visible");
+    }
+
+    function escapeHtml(s) {
+      const d = document.createElement("div");
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    function addToHistory(data) {
+      const entry = {
+        timestamp: new Date(),
+        score: data.score,
+        verdict: data.verdict,
+      };
+      repHistory.push(entry);
+      renderHistory();
+    }
+
+    function renderHistory() {
+      historyListEl.innerHTML = "";
+      if (!repHistory.length) {
+        historyEmptyEl.hidden = false;
+        return;
+      }
+      historyEmptyEl.hidden = true;
+      repHistory.slice().reverse().forEach((h) => {
+        const li = document.createElement("li");
+        const time = h.timestamp.toLocaleString(undefined, {
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        li.innerHTML =
+          "<span>" + escapeHtml(time) + " — " + escapeHtml(h.verdict) + "</span>" +
+          '<span class="hist-score">' + h.score + "/10</span>";
+        historyListEl.appendChild(li);
+      });
+    }
+
+    function showError(msg) {
+      analyzeErrorEl.textContent = msg;
+      analyzeErrorEl.hidden = false;
+    }
+
+    function hideError() {
+      analyzeErrorEl.hidden = true;
+      analyzeErrorEl.textContent = "";
+    }
+
+    // ─── Analyze ──────────────────────────────────────────────────────────────
+    analyzeBtn.addEventListener("click", async () => {
+      hideError();
+      const transcript = transcriptEl.value.trim();
+      if (!transcript) {
+        showError("Add a transcript (record or paste/type) before analyzing.");
+        return;
+      }
+
+      if (isRecording) stopRecording();
+      updateMetrics();
+
+      const question = questionEl.value.trim();
+      const durationSec = getDurationSec();
+      const words = countWords(transcript);
+      let wpm = null;
+      if (durationSec != null && durationSec > 0) {
+        wpm = Math.round(words / (durationSec / 60));
+      }
+
+      const userMessage = buildUserMessage(question, transcript, durationSec, wpm);
+
+      analyzeBtn.disabled = true;
+      analyzeLoadingEl.hidden = false;
+
+      try {
+        const raw = await callLLM(userMessage);
+        const parsed = validateResult(parseModelJson(raw));
+        renderResults(parsed, wpm);
+        addToHistory(parsed);
+      } catch (e) {
+        showError(e.message || String(e));
+      } finally {
+        analyzeBtn.disabled = false;
+        analyzeLoadingEl.hidden = true;
+      }
+    });
+
+    initSpeech();
+    renderHistory();
+  </script>
+</body>
+</html>
