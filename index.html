@@ -380,10 +380,10 @@
     <section class="card">
       <h2>Setup</h2>
       <div class="field">
-        <label for="apiKey">API key (optional if set in code)</label>
-        <input type="password" id="apiKey" placeholder="sk-…" autocomplete="off" />
+        <label for="apiKey">Gemini API key (optional if set in code)</label>
+        <input type="password" id="apiKey" placeholder="AIza…" autocomplete="off" />
       </div>
-      <p class="hint">Uses OpenAI chat-completions by default. Edit <code>LLM_ENDPOINT</code> / request body in the script for Anthropic or other providers.</p>
+      <p class="hint">Uses Google Gemini (<code>generateContent</code>). Get a key at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style="color: var(--accent);">Google AI Studio</a>. See script comments to swap OpenAI or Anthropic.</p>
     </section>
 
     <section class="card">
@@ -480,21 +480,17 @@
   </div>
 
   <script>
-    // ─── Config ─────────────────────────────────────────────────────────────
-    const LLM_ENDPOINT = "https://api.openai.com/v1/chat/completions";
-    const MODEL = "gpt-4o"; // set to whatever model you have access to
-    const API_KEY = ""; // paste key here, or use the API key field below
+    // ─── Config (Google Gemini) ───────────────────────────────────────────────
+    const PROVIDER = "gemini"; // "gemini" | "openai" | "anthropic"
+    const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
+    const MODEL = "gemini-2.0-flash"; // e.g. gemini-2.0-flash, gemini-1.5-pro, gemini-2.5-flash-preview
+    const API_KEY = ""; // paste Gemini key here, or use the API key field below
 
-    /*
-     * Anthropic swap (example — uncomment and point LLM_ENDPOINT):
-     *   const LLM_ENDPOINT = "https://api.anthropic.com/v1/messages";
-     *   body: { model: "claude-sonnet-4-20250514", max_tokens: 2048,
-     *           system: RUBRIC + "\n\nReturn ONLY valid JSON...",
-     *           messages: [{ role: "user", content: userMessage }] }
-     *   headers: { "x-api-key": key, "anthropic-version": "2023-06-01",
-     *              "content-type": "application/json" }
-     * Response: JSON.parse(data.content[0].text)
-     */
+    // OpenAI swap: set PROVIDER = "openai", MODEL = "gpt-4o",
+    //   LLM_ENDPOINT = "https://api.openai.com/v1/chat/completions"
+    // Anthropic swap: set PROVIDER = "anthropic",
+    //   LLM_ENDPOINT = "https://api.anthropic.com/v1/messages", MODEL = "claude-sonnet-4-20250514"
+    const LLM_ENDPOINT = "https://api.openai.com/v1/chat/completions"; // only when PROVIDER === "openai"
 
     const RUBRIC = `You are an Amazon SDE 2 Leadership Principles interview coach scoring DELIVERY, not just content. Bar = SDE 2: ownership of ambiguity, tradeoff reasoning, depth on follow-ups, quantified results. Judge the answer on:
 1. Hedging language — flag every instance of: just, kind of, sort of, I guess, maybe, a little, honestly, basically, probably, I think, and any 'we' used for the speaker's own work. For each, give the confident rewrite. Zero hedges is the target.
@@ -698,10 +694,55 @@ Be specific and direct. No pep talk. Quote the candidate's actual words when fla
       return lines.join("\n");
     }
 
-    async function callLLM(userMessage) {
-      const key = getApiKey();
-      if (!key) throw new Error("Add your API key in the field above or in API_KEY in the script.");
+    function extractGeminiError(data, res) {
+      return (
+        data.error?.message ||
+        data[0]?.error?.message ||
+        res.statusText ||
+        "Request failed"
+      );
+    }
 
+    async function callGemini(userMessage, key) {
+      const systemText = RUBRIC + "\n\n" + JSON_SCHEMA_INSTRUCTION;
+      const url =
+        GEMINI_API_BASE +
+        "/models/" +
+        encodeURIComponent(MODEL) +
+        ":generateContent";
+
+      const body = {
+        systemInstruction: { parts: [{ text: systemText }] },
+        contents: [{ role: "user", parts: [{ text: userMessage }] }],
+        generationConfig: {
+          temperature: 0.3,
+          responseMimeType: "application/json",
+        },
+      };
+
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": key,
+        },
+        body: JSON.stringify(body),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(extractGeminiError(data, res));
+
+      const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!content) {
+        const block = data.candidates?.[0]?.finishReason;
+        throw new Error(
+          "No text in Gemini response." + (block ? " Finish reason: " + block : "")
+        );
+      }
+      return content;
+    }
+
+    async function callOpenAI(userMessage, key) {
       const body = {
         model: MODEL,
         temperature: 0.3,
@@ -722,13 +763,52 @@ Be specific and direct. No pep talk. Quote the candidate's actual words when fla
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const msg = data.error?.message || data.message || res.statusText || "Request failed";
-        throw new Error(msg);
+        throw new Error(data.error?.message || res.statusText || "Request failed");
       }
 
       const content = data.choices?.[0]?.message?.content;
-      if (!content) throw new Error("No content in LLM response.");
+      if (!content) throw new Error("No content in OpenAI response.");
       return content;
+    }
+
+    async function callAnthropic(userMessage, key) {
+      const res = await fetch(LLM_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": key,
+          "anthropic-version": "2023-06-01",
+          "anthropic-dangerous-direct-browser-access": "true",
+        },
+        body: JSON.stringify({
+          model: MODEL,
+          max_tokens: 2048,
+          temperature: 0.3,
+          system: RUBRIC + "\n\n" + JSON_SCHEMA_INSTRUCTION,
+          messages: [{ role: "user", content: userMessage }],
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error?.message || res.statusText || "Request failed");
+      }
+
+      const content = data.content?.[0]?.text;
+      if (!content) throw new Error("No content in Anthropic response.");
+      return content;
+    }
+
+    async function callLLM(userMessage) {
+      const key = getApiKey();
+      if (!key) {
+        throw new Error("Add your Gemini API key in the field above or in API_KEY in the script.");
+      }
+
+      if (PROVIDER === "gemini") return callGemini(userMessage, key);
+      if (PROVIDER === "openai") return callOpenAI(userMessage, key);
+      if (PROVIDER === "anthropic") return callAnthropic(userMessage, key);
+      throw new Error('Unknown PROVIDER "' + PROVIDER + '". Use "gemini", "openai", or "anthropic".');
     }
 
     function parseModelJson(raw) {
